@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'none'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SafeBatch 密匣</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="renderer.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"><span>S</span></div>
+          <div>
+            <div class="brand-name">SafeBatch <span>密匣</span></div>
+            <div class="brand-subtitle">批量文件加密工具</div>
+          </div>
+        </div>
+        <div class="privacy-badge">
+          <span class="privacy-dot" aria-hidden="true"></span>
+          文件始终留在本机
+        </div>
+      </header>
+
+      <main class="content-grid">
+        <section class="card queue-card" aria-labelledby="queue-title">
+          <div class="card-heading queue-heading">
+            <div>
+              <p class="eyebrow">文件队列</p>
+              <h1 id="queue-title">选择文件夹或文件</h1>
+            </div>
+            <div class="toolbar">
+              <button class="button ghost" id="clear-button" type="button" disabled>
+                清空
+              </button>
+              <button class="button secondary" id="files-button" type="button">
+                <span aria-hidden="true">＋</span> 添加文件
+              </button>
+              <button class="button primary compact" id="folder-button" type="button">
+                <span aria-hidden="true">＋</span> 选择文件夹
+              </button>
+            </div>
+          </div>
+
+          <div class="queue-summary" id="queue-summary" hidden>
+            <span id="file-count">0 个文件</span>
+            <span class="summary-divider" aria-hidden="true"></span>
+            <span id="total-size">0 B</span>
+          </div>
+
+          <div class="empty-state" id="empty-state">
+            <div class="empty-illustration" aria-hidden="true">
+              <div class="document back"></div>
+              <div class="document front"><span class="mini-lock"></span></div>
+            </div>
+            <h2>选择文件夹，批量保护其中的文件</h2>
+            <p id="empty-description">递归扫描子文件夹，所有普通文件都会逐个加密</p>
+            <div class="format-chips" aria-label="支持的常见文件类型">
+              <span>Word</span><span>PDF</span><span>ZIP / RAR</span><span>全部文件</span>
+            </div>
+            <button class="text-button" id="empty-add-button" type="button">
+              选择文件夹开始 <span aria-hidden="true">→</span>
+            </button>
+          </div>
+
+          <div class="file-table" id="file-table" hidden>
+            <div class="file-header" aria-hidden="true">
+              <span>文件</span><span>大小</span><span>状态</span><span></span>
+            </div>
+            <div class="file-list" id="file-list" role="list"></div>
+          </div>
+        </section>
+
+        <aside class="settings-column" aria-label="处理设置">
+          <section class="card settings-card">
+            <div class="card-heading simple-heading">
+              <div>
+                <p class="eyebrow">处理方式</p>
+                <h2 id="settings-title">加密设置</h2>
+              </div>
+              <span class="step-number">01</span>
+            </div>
+
+            <fieldset class="mode-switch" id="mode-switch">
+              <legend class="sr-only">选择加密或解密</legend>
+              <label>
+                <input type="radio" name="mode" value="encrypt" checked />
+                <span>加密文件</span>
+              </label>
+              <label>
+                <input type="radio" name="mode" value="decrypt" />
+                <span>解密文件</span>
+              </label>
+            </fieldset>
+
+            <div class="field-group">
+              <label for="password">密码</label>
+              <div class="password-field">
+                <input
+                  id="password"
+                  type="password"
+                  maxlength="256"
+                  placeholder="输入密码"
+                  autocomplete="new-password"
+                />
+                <button
+                  class="icon-button eye-button"
+                  id="show-password"
+                  type="button"
+                  aria-label="显示密码"
+                  aria-pressed="false"
+                >
+                  <span aria-hidden="true"></span>
+                </button>
+              </div>
+              <p class="field-help" id="password-help">至少 8 个字符，建议使用长密码短语</p>
+            </div>
+
+            <div class="field-group" id="confirm-row">
+              <label for="confirm-password">确认密码</label>
+              <div class="password-field">
+                <input
+                  id="confirm-password"
+                  type="password"
+                  maxlength="256"
+                  placeholder="再次输入密码"
+                  autocomplete="new-password"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section class="card destination-card">
+            <div class="card-heading simple-heading small">
+              <div>
+                <p class="eyebrow">保存位置</p>
+                <h2>输出文件夹</h2>
+              </div>
+              <span class="step-number">02</span>
+            </div>
+            <button class="destination-picker" id="destination-button" type="button">
+              <span class="folder-icon" aria-hidden="true"></span>
+              <span class="destination-copy">
+                <strong id="destination-title">各文件原目录</strong>
+                <small id="destination-path">每个文件旁生成 .sbox 副本</small>
+              </span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </button>
+            <button class="reset-destination" id="reset-destination" type="button" hidden>
+              恢复默认位置
+            </button>
+          </section>
+
+          <div class="safety-note">
+            <div class="shield-check" aria-hidden="true">✓</div>
+            <div>
+              <strong>文件夹只用于选择范围</strong>
+              <p>递归处理其中的文件，不打包文件夹，不覆盖或删除原文件。</p>
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="action-bar">
+        <div class="progress-copy">
+          <div class="status-line">
+            <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+            <strong id="status-text" role="status" aria-live="polite">准备就绪</strong>
+            <span id="status-detail">选择文件夹后即可开始</span>
+          </div>
+          <div class="global-progress" id="global-progress" hidden>
+            <span id="global-progress-fill"></span>
+          </div>
+        </div>
+        <div class="action-buttons">
+          <button class="button danger" id="cancel-button" type="button" hidden>
+            取消任务
+          </button>
+          <button class="button primary start-button" id="start-button" type="button" disabled>
+            开始加密 <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </footer>
+    </div>
+
+    <div class="toast" id="toast" role="alert" aria-live="assertive" hidden></div>
+  </body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "name": "safebatch",
+  "version": "1.0.0",
+  "description": "Windows 和 macOS 本地批量文件加密工具",
+  "private": true,
+  "main": "src/main.js",
+  "author": "SafeBatch",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "dist:mac": "electron-builder --mac dmg",
+    "dist:win": "electron-builder --win nsis --x64",
+    "dist:win:portable": "electron-builder --win zip --x64"
+  },
+  "devDependencies": {
+    "electron": "44.2.0",
+    "electron-builder": "26.15.7"
+  },
+  "build": {
+    "appId": "com.safebatch.desktop",
+    "productName": "SafeBatch 密匣",
+    "asar": true,
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
