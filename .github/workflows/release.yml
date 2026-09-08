@@ -13,10 +13,10 @@ jobs:
       matrix:
         include:
           - os: macos-14
-            command: npx electron-builder --mac dmg --arm64
+            command: npx electron-builder --mac dmg --arm64 --publish never
             files: dist/*.dmg
           - os: windows-latest
-            command: npm run dist:win:portable
+            command: npm run dist:win:portable -- --publish never
             files: dist/*.zip
     runs-on: ${{ matrix.os }}
     steps:
