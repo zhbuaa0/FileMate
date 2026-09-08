@@ -18,7 +18,7 @@ function createWindow() {
     show: false,
     backgroundColor: "#f4f6fb",
     autoHideMenuBar: true,
-    title: "SafeBatch 密匣",
+    title: "FileMate",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -110,7 +110,7 @@ function messageFor(error) {
   const messages = {
     AUTH_FAILED: "密码错误或文件已损坏",
     CANCELLED: "已取消",
-    INVALID_FILE: "不是有效的 SafeBatch 文件",
+    INVALID_FILE: "不是有效的 FileMate 加密文件",
     MISSING_PASSWORD: "请输入密码",
     NOT_A_FILE: "不是普通文件",
     OUTPUT_EXISTS: "目标文件已存在",
@@ -218,7 +218,7 @@ function registerIpc() {
       filters:
         mode === "decrypt"
           ? [
-              { name: "SafeBatch 文件", extensions: ["sbox"] },
+              { name: "FileMate 加密文件", extensions: ["sbox"] },
               { name: "所有文件", extensions: ["*"] },
             ]
           : undefined,
@@ -261,7 +261,7 @@ function registerIpc() {
   });
 }
 
-app.setName("SafeBatch 密匣");
+app.setName("FileMate");
 app.whenReady().then(() => {
   createWindow();
   registerIpc();

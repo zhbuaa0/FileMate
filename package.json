@@ -1,10 +1,10 @@
 {
-  "name": "safebatch",
+  "name": "filemate",
   "version": "1.0.0",
   "description": "Windows 和 macOS 本地批量文件加密工具",
   "private": true,
   "main": "src/main.js",
-  "author": "SafeBatch",
+  "author": "zhbuaa0",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -18,8 +18,8 @@
     "electron-builder": "26.15.7"
   },
   "build": {
-    "appId": "com.safebatch.desktop",
-    "productName": "SafeBatch 密匣",
+    "appId": "com.zhbuaa0.filemate",
+    "productName": "FileMate",
     "asar": true,
     "files": [
       "src/**/*",

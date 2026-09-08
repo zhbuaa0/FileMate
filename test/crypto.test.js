@@ -12,7 +12,7 @@ const {
 } = require("../src/crypto");
 
 test("文件夹递归选取且文件可安全往返解密", async (t) => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "safebatch-"));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "filemate-"));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
 
   const folder = path.join(directory, "合同资料");
@@ -38,7 +38,7 @@ test("文件夹递归选取且文件可安全往返解密", async (t) => {
   const encrypted = `${source}.sbox`;
   const restored = path.join(directory, "restored.txt");
   const original = Buffer.concat([
-    Buffer.from("SafeBatch 往返测试\n"),
+    Buffer.from("FileMate 往返测试\n"),
     Buffer.alloc(1024 * 1024, 0xa5),
   ]);
   await fs.writeFile(source, original);

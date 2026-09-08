@@ -163,14 +163,14 @@ async function readExactly(handle, length, position) {
 async function readEnvelope(inputPath) {
   const stat = await fileInfo(inputPath);
   if (stat.size < HEADER_BYTES + TAG_BYTES) {
-    throw new SafeBoxError("INVALID_FILE", "不是有效的 SafeBatch 文件");
+    throw new SafeBoxError("INVALID_FILE", "不是有效的 FileMate 加密文件");
   }
 
   const handle = await fsp.open(inputPath, "r");
   try {
     const header = await readExactly(handle, HEADER_BYTES, 0);
     if (!header.subarray(0, MAGIC.length).equals(MAGIC)) {
-      throw new SafeBoxError("INVALID_FILE", "不是有效的 SafeBatch 文件");
+      throw new SafeBoxError("INVALID_FILE", "不是有效的 FileMate 加密文件");
     }
     const tag = await readExactly(handle, TAG_BYTES, stat.size - TAG_BYTES);
     return {
