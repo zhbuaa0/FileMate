@@ -27,7 +27,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Create Windows self-signed certificate
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=FileMate" -CertStoreLocation Cert:\CurrentUser\My -KeyExportPolicy Exportable -NotAfter (Get-Date).AddYears(5)
+          $password = ConvertTo-SecureString "filemate" -AsPlainText -Force
+          Export-PfxCertificate -Cert $cert -FilePath "$env:RUNNER_TEMP\filemate.pfx" -Password $password
       - run: ${{ matrix.command }}
+        env:
+          WIN_CSC_LINK: ${{ runner.temp }}/filemate.pfx
+          WIN_CSC_KEY_PASSWORD: filemate
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ runner.os }}
@@ -43,6 +53,8 @@ jobs:
           merge-multiple: true
       - run: |
           sha256sum dist/* > SHA256SUMS.txt
-          gh release create "$GITHUB_REF_NAME" dist/* SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --title "FileMate $GITHUB_REF_NAME" --notes "FileMate 首个公开版本，支持在 Windows 和 macOS 上递归批量加密、解密文件。当前安装包尚未签名，首次运行时系统可能显示安全提示。"
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"
+          gh release upload "$GITHUB_REF_NAME" dist/* SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "FileMate $GITHUB_REF_NAME" --notes "FileMate 首个公开版本，支持在 Windows 和 macOS 上递归批量加密、解密文件。安装包使用免费自签名，首次运行时系统仍可能显示安全提示。"
         env:
           GH_TOKEN: ${{ github.token }}

@@ -27,6 +27,7 @@
     ],
     "mac": {
       "category": "public.app-category.utilities",
+      "identity": "-",
       "target": "dmg"
     },
     "win": {
