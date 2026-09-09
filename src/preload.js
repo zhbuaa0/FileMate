@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld(
     pickFolder: (mode) => ipcRenderer.invoke("folder:pick", mode),
     pickDestination: () => ipcRenderer.invoke("destination:pick"),
     start: (payload) => ipcRenderer.invoke("batch:start", payload),
+    splitPdf: (payload) => ipcRenderer.invoke("pdf:split", payload),
     cancel: () => ipcRenderer.invoke("batch:cancel"),
     reveal: (outputPath) => ipcRenderer.invoke("output:reveal", outputPath),
     onProgress: (callback) => {

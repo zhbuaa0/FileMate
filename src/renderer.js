@@ -1,14 +1,17 @@
 const elements = {
+  addSplit: document.querySelector("#add-split"),
   cancelButton: document.querySelector("#cancel-button"),
   clearButton: document.querySelector("#clear-button"),
   confirmPassword: document.querySelector("#confirm-password"),
   confirmRow: document.querySelector("#confirm-row"),
+  cryptoSettings: document.querySelector("#crypto-settings"),
   destinationButton: document.querySelector("#destination-button"),
   destinationPath: document.querySelector("#destination-path"),
   destinationTitle: document.querySelector("#destination-title"),
   emptyAddButton: document.querySelector("#empty-add-button"),
   emptyDescription: document.querySelector("#empty-description"),
   emptyState: document.querySelector("#empty-state"),
+  emptyTitle: document.querySelector("#empty-title"),
   fileCount: document.querySelector("#file-count"),
   fileList: document.querySelector("#file-list"),
   fileTable: document.querySelector("#file-table"),
@@ -19,9 +22,15 @@ const elements = {
   modeSwitch: document.querySelector("#mode-switch"),
   password: document.querySelector("#password"),
   passwordHelp: document.querySelector("#password-help"),
+  pdfSummary: document.querySelector("#pdf-summary"),
+  queueTitle: document.querySelector("#queue-title"),
   queueSummary: document.querySelector("#queue-summary"),
   resetDestination: document.querySelector("#reset-destination"),
+  safetyDescription: document.querySelector("#safety-description"),
+  safetyTitle: document.querySelector("#safety-title"),
   showPassword: document.querySelector("#show-password"),
+  splitList: document.querySelector("#split-list"),
+  splitSettings: document.querySelector("#split-settings"),
   settingsTitle: document.querySelector("#settings-title"),
   startButton: document.querySelector("#start-button"),
   statusDetail: document.querySelector("#status-detail"),
@@ -36,6 +45,8 @@ const rowRefs = new Map();
 let mode = "encrypt";
 let destination = null;
 let running = false;
+let splitParts = [];
+let nextSplitId = 1;
 let toastTimer;
 
 function formatBytes(bytes) {
@@ -105,7 +116,9 @@ function renderFile(file) {
   remove.addEventListener("click", () => {
     if (running) return;
     files.delete(file.path);
+    if (mode === "split") splitParts = [];
     renderQueue();
+    renderSplitParts();
   });
 
   const progress = document.createElement("div");
@@ -126,7 +139,7 @@ function renderQueue() {
   elements.fileTable.hidden = !hasFiles;
   elements.queueSummary.hidden = !hasFiles;
   elements.clearButton.disabled = !hasFiles || running;
-  elements.startButton.disabled = !hasFiles || running;
+  elements.startButton.disabled = !hasFiles || running || (mode === "split" && !splitParts.length);
   elements.fileCount.textContent = `${files.size} 个文件`;
   elements.totalSize.textContent = formatBytes(
     [...files.values()].reduce((total, file) => total + file.size, 0),
@@ -140,10 +153,72 @@ function renderQueue() {
 }
 
 function addFiles(items) {
+  if (mode === "split") {
+    files.clear();
+    if (items[0]) {
+      files.set(items[0].path, { ...items[0] });
+      const base = items[0].name.replace(/\.pdf$/i, "");
+      splitParts = [{ id: nextSplitId++, start: 1, end: items[0].pageCount, name: `${base}-1` }];
+    }
+    renderQueue();
+    renderSplitParts();
+    return;
+  }
   for (const item of items) {
     if (!files.has(item.path)) files.set(item.path, { ...item });
   }
   renderQueue();
+}
+
+function renderSplitParts() {
+  const source = files.values().next().value;
+  elements.pdfSummary.textContent = source
+    ? `${source.name} · 共 ${source.pageCount} 页`
+    : "选择 PDF 后填写拆分范围";
+  elements.addSplit.disabled = !source || running;
+  elements.splitList.replaceChildren(
+    ...splitParts.map((part, index) => {
+      const row = document.createElement("div");
+      row.className = "split-row";
+
+      const start = document.createElement("input");
+      start.type = "number";
+      start.min = "1";
+      start.max = String(source.pageCount);
+      start.value = String(part.start);
+      start.setAttribute("aria-label", `第 ${index + 1} 份起始页`);
+      start.addEventListener("input", () => { part.start = Number(start.value); });
+
+      const separator = createTextElement("span", "split-separator", "至");
+      const end = document.createElement("input");
+      end.type = "number";
+      end.min = "1";
+      end.max = String(source.pageCount);
+      end.value = String(part.end);
+      end.setAttribute("aria-label", `第 ${index + 1} 份结束页`);
+      end.addEventListener("input", () => { part.end = Number(end.value); });
+
+      const name = document.createElement("input");
+      name.type = "text";
+      name.maxLength = 180;
+      name.value = part.name;
+      name.placeholder = "文件名";
+      name.setAttribute("aria-label", `第 ${index + 1} 份文件名`);
+      name.addEventListener("input", () => { part.name = name.value; });
+
+      const remove = createTextElement("button", "split-remove", "×");
+      remove.type = "button";
+      remove.setAttribute("aria-label", `移除第 ${index + 1} 份`);
+      remove.disabled = running;
+      remove.addEventListener("click", () => {
+        splitParts = splitParts.filter((item) => item.id !== part.id);
+        renderSplitParts();
+        renderQueue();
+      });
+      row.append(start, separator, end, name, remove);
+      return row;
+    }),
+  );
 }
 
 function updateFile(filePath, state, message, progress, outputPath) {
@@ -171,23 +246,48 @@ function resetRows() {
 }
 
 function setMode(nextMode) {
+  if (mode === "split" || nextMode === "split") {
+    files.clear();
+    splitParts = [];
+  }
   mode = nextMode;
   const encrypting = mode === "encrypt";
+  const splitting = mode === "split";
+  elements.cryptoSettings.hidden = splitting;
+  elements.splitSettings.hidden = !splitting;
   elements.confirmRow.hidden = !encrypting;
-  elements.settingsTitle.textContent = encrypting ? "加密设置" : "解密设置";
+  elements.settingsTitle.textContent = splitting ? "拆分设置" : encrypting ? "加密设置" : "解密设置";
   elements.passwordHelp.textContent = encrypting
     ? "至少 8 个字符，建议使用长密码短语"
     : "输入加密时使用的原密码";
-  elements.emptyDescription.textContent = encrypting
+  elements.emptyDescription.textContent = splitting
+    ? "选择一个扫描 PDF，再按页码范围生成多份文件"
+    : encrypting
     ? "递归扫描子文件夹，所有普通文件都会逐个加密"
     : "递归查找子文件夹中的 .sbox 文件并逐个恢复";
+  elements.emptyTitle.textContent = splitting
+    ? "按页码拆分并命名扫描文件"
+    : encrypting ? "选择文件夹，批量保护其中的文件" : "选择文件夹，批量恢复其中的文件";
+  elements.safetyTitle.textContent = splitting ? "原 PDF 始终保留" : "文件夹只用于选择范围";
+  elements.safetyDescription.textContent = splitting
+    ? "只生成新的拆分文件，不覆盖或删除扫描原件。"
+    : "递归处理其中的文件，不打包文件夹，不覆盖或删除原文件。";
+  elements.queueTitle.textContent = splitting ? "选择扫描 PDF" : "选择文件夹或文件";
+  elements.filesButton.textContent = splitting ? "＋ 选择 PDF" : "＋ 添加文件";
+  elements.folderButton.hidden = splitting;
+  elements.emptyAddButton.textContent = splitting ? "选择 PDF 开始 →" : "选择文件夹开始 →";
   if (!destination) {
-    elements.destinationPath.textContent = encrypting
+    elements.destinationTitle.textContent = splitting ? "PDF 所在目录" : "各文件原目录";
+    elements.destinationPath.textContent = splitting
+      ? "在扫描 PDF 旁生成拆分文件"
+      : encrypting
       ? "每个文件旁生成 .sbox 副本"
       : "在每个 .sbox 文件旁恢复内容";
   }
-  elements.startButton.firstChild.textContent = encrypting ? "开始加密 " : "开始解密 ";
+  elements.startButton.firstChild.textContent = splitting ? "开始拆分 " : encrypting ? "开始加密 " : "开始解密 ";
   if (!running) resetRows();
+  renderQueue();
+  renderSplitParts();
 }
 
 function setRunning(value) {
@@ -202,6 +302,8 @@ function setRunning(value) {
     elements.confirmPassword,
     elements.resetDestination,
     elements.showPassword,
+    elements.addSplit,
+    ...elements.splitList.querySelectorAll("input, button"),
     ...elements.modeSwitch.querySelectorAll("input"),
   ];
   for (const control of controls) control.disabled = value;
@@ -238,12 +340,29 @@ async function pickFolder() {
 }
 
 elements.filesButton.addEventListener("click", pickFiles);
-elements.emptyAddButton.addEventListener("click", pickFolder);
+elements.emptyAddButton.addEventListener("click", () => mode === "split" ? pickFiles() : pickFolder());
 elements.folderButton.addEventListener("click", pickFolder);
+
+elements.addSplit.addEventListener("click", () => {
+  const source = files.values().next().value;
+  if (!source) return;
+  const previousEnd = splitParts.at(-1)?.end || 0;
+  const start = Math.min(source.pageCount, previousEnd + 1);
+  splitParts.push({
+    id: nextSplitId++,
+    start,
+    end: source.pageCount,
+    name: `${source.name.replace(/\.pdf$/i, "")}-${splitParts.length + 1}`,
+  });
+  renderSplitParts();
+  renderQueue();
+});
 
 elements.clearButton.addEventListener("click", () => {
   files.clear();
+  splitParts = [];
   renderQueue();
+  renderSplitParts();
 });
 
 elements.modeSwitch.addEventListener("change", (event) => setMode(event.target.value));
@@ -272,14 +391,51 @@ elements.destinationButton.addEventListener("click", async () => {
 
 elements.resetDestination.addEventListener("click", () => {
   destination = null;
-  elements.destinationTitle.textContent = "各文件原目录";
-  elements.destinationPath.textContent =
-    mode === "encrypt" ? "每个文件旁生成 .sbox 副本" : "在每个 .sbox 文件旁恢复内容";
+  elements.destinationTitle.textContent = mode === "split" ? "PDF 所在目录" : "各文件原目录";
+  elements.destinationPath.textContent = mode === "split"
+    ? "在扫描 PDF 旁生成拆分文件"
+    : mode === "encrypt" ? "每个文件旁生成 .sbox 副本" : "在每个 .sbox 文件旁恢复内容";
   elements.destinationPath.title = "";
   elements.resetDestination.hidden = true;
 });
 
+async function startPdfSplit() {
+  const source = files.values().next().value;
+  if (!source) return showToast("请先选择扫描 PDF");
+  if (!splitParts.length) return showToast("请至少添加一份 PDF");
+
+  resetRows();
+  setRunning(true);
+  elements.globalProgressFill.style.width = "0%";
+  setFooter("正在拆分 PDF", "正在准备…", "active");
+  try {
+    const result = await window.safeBox.splitPdf({
+      sourcePath: source.path,
+      destination,
+      parts: splitParts.map(({ start, end, name }) => ({ start, end, name })),
+    });
+    const outputPath = result.outputs.at(-1);
+    updateFile(source.path, result.cancelled ? "cancelled" : "done", result.cancelled ? "已取消" : "已拆分", result.cancelled ? 0 : 100, outputPath);
+    elements.globalProgressFill.style.width = result.cancelled ? "0%" : "100%";
+    setFooter(
+      result.cancelled ? "任务已取消" : "拆分完成",
+      `已生成 ${result.outputs.length} 个 PDF`,
+      result.cancelled ? "error" : "success",
+    );
+  } catch (error) {
+    updateFile(source.path, "error", "失败", 0);
+    setFooter("拆分失败", error.message || "无法拆分 PDF", "error");
+    showToast(error.message || "无法拆分 PDF");
+  } finally {
+    elements.cancelButton.disabled = false;
+    elements.cancelButton.textContent = "取消任务";
+    setRunning(false);
+    renderSplitParts();
+  }
+}
+
 elements.startButton.addEventListener("click", async () => {
+  if (mode === "split") return startPdfSplit();
   const password = elements.password.value;
   if (!files.size) return showToast("请先添加文件");
   if (!password) return showToast("请输入密码");
@@ -332,7 +488,14 @@ elements.cancelButton.addEventListener("click", async () => {
 });
 
 window.safeBox.onProgress((event) => {
-  if (event.type === "file-start") {
+  if (event.type === "split-progress") {
+    const source = files.values().next().value;
+    if (!source) return;
+    const percent = (event.completed / event.total) * 100;
+    updateFile(source.path, "working", `${event.completed} / ${event.total}`, percent, event.outputPath);
+    elements.globalProgressFill.style.width = `${percent}%`;
+    setFooter("正在拆分 PDF", `${event.completed} / ${event.total}`, "active");
+  } else if (event.type === "file-start") {
     updateFile(event.path, "working", mode === "encrypt" ? "加密中" : "解密中", 0);
     setFooter(
       mode === "encrypt" ? "正在加密" : "正在解密",
@@ -361,3 +524,4 @@ window.safeBox.onProgress((event) => {
 });
 
 renderQueue();
+renderSplitParts();

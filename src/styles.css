@@ -638,7 +638,7 @@ h2 {
 
 .mode-switch {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   margin: 0 0 18px;
   padding: 4px;
   background: #f1f2f6;
@@ -773,6 +773,71 @@ h2 {
   color: #989faf;
   font-size: 9px;
   line-height: 1.45;
+}
+
+.pdf-summary {
+  margin-bottom: 10px;
+  color: #667086;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.split-list {
+  display: flex;
+  max-height: 190px;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 9px;
+  overflow: auto;
+}
+
+.split-row {
+  display: grid;
+  grid-template-columns: 42px 18px 42px minmax(75px, 1fr) 25px;
+  align-items: center;
+  gap: 5px;
+}
+
+.split-row input {
+  width: 100%;
+  height: 34px;
+  min-width: 0;
+  padding: 0 7px;
+  color: var(--ink);
+  background: #fafbfc;
+  border: 1px solid #e1e4ec;
+  border-radius: 8px;
+  font-size: 10px;
+  user-select: text;
+}
+
+.split-row input:focus {
+  background: #fff;
+  border-color: #9794ef;
+  outline: 0;
+}
+
+.split-separator {
+  color: #969dad;
+  font-size: 9px;
+  text-align: center;
+}
+
+.split-remove {
+  height: 25px;
+  color: #9da4b4;
+  background: transparent;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.split-remove:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.add-split {
+  width: 100%;
 }
 
 .destination-picker {

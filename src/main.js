@@ -3,6 +3,7 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 
 const { collectFolderFiles, decryptFile, encryptFile } = require("./crypto");
+const { inspectPdf, splitPdf } = require("./pdf");
 
 const MAX_FILES = 5000;
 let mainWindow;
@@ -39,12 +40,14 @@ function trustedWindow(event) {
   return window;
 }
 
-async function describeFiles(paths) {
+async function describeFiles(paths, includePdfPages = false) {
   const files = [];
   for (const filePath of paths) {
     const stat = await fs.stat(filePath);
     if (stat.isFile()) {
-      files.push({ path: filePath, name: path.basename(filePath), size: stat.size });
+      const file = { path: filePath, name: path.basename(filePath), size: stat.size };
+      if (includePdfPages) file.pageCount = (await inspectPdf(filePath)).pageCount;
+      files.push(file);
     }
   }
   return files;
@@ -208,22 +211,64 @@ async function runBatch(event, payload) {
   return { cancelled: job.cancelled, results };
 }
 
+async function runPdfSplit(event, payload) {
+  trustedWindow(event);
+  if (!payload || typeof payload.sourcePath !== "string" || !path.isAbsolute(payload.sourcePath)) {
+    throw new Error("请选择扫描 PDF");
+  }
+  if (payload.destination != null) {
+    if (typeof payload.destination !== "string" || !path.isAbsolute(payload.destination)) {
+      throw new Error("输出目录无效");
+    }
+    if (!(await fs.stat(payload.destination)).isDirectory()) {
+      throw new Error("输出位置不是文件夹");
+    }
+  }
+  if (activeJob) throw new Error("已有任务正在运行");
+
+  const job = { cancelled: false };
+  activeJob = job;
+  lastOutputs = new Set();
+  try {
+    let outputs = [];
+    try {
+      outputs = await splitPdf(payload.sourcePath, payload.parts, payload.destination, {
+        isCancelled: () => job.cancelled,
+        onProgress: (completed, total, outputPath) => {
+          lastOutputs.add(outputPath);
+          sendProgress(event, { type: "split-progress", completed, total, outputPath });
+        },
+      });
+    } catch (error) {
+      if (error.code !== "CANCELLED") throw error;
+      outputs = error.outputs || [];
+      job.cancelled = true;
+    }
+    return { cancelled: job.cancelled, outputs };
+  } finally {
+    activeJob = undefined;
+  }
+}
+
 function registerIpc() {
   ipcMain.handle("files:pick", async (event, mode) => {
     const window = trustedWindow(event);
+    const splitting = mode === "split";
     const result = await dialog.showOpenDialog(window, {
-      title: mode === "decrypt" ? "选择要解密的文件" : "选择要加密的文件",
+      title: splitting ? "选择扫描 PDF" : mode === "decrypt" ? "选择要解密的文件" : "选择要加密的文件",
       buttonLabel: "添加",
-      properties: ["openFile", "multiSelections"],
+      properties: splitting ? ["openFile"] : ["openFile", "multiSelections"],
       filters:
-        mode === "decrypt"
+        splitting
+          ? [{ name: "PDF 文件", extensions: ["pdf"] }]
+          : mode === "decrypt"
           ? [
               { name: "FileMate 加密文件", extensions: ["sbox"] },
               { name: "所有文件", extensions: ["*"] },
             ]
           : undefined,
     });
-    return result.canceled ? [] : describeFiles(result.filePaths);
+    return result.canceled ? [] : describeFiles(result.filePaths, splitting);
   });
 
   ipcMain.handle("folder:pick", async (event, mode) => {
@@ -249,6 +294,7 @@ function registerIpc() {
   });
 
   ipcMain.handle("batch:start", runBatch);
+  ipcMain.handle("pdf:split", runPdfSplit);
   ipcMain.handle("batch:cancel", (event) => {
     trustedWindow(event);
     if (activeJob) activeJob.cancelled = true;

@@ -18,7 +18,7 @@
           <div class="brand-mark" aria-hidden="true"><span>S</span></div>
           <div>
             <div class="brand-name">FileMate <span>文件助手</span></div>
-            <div class="brand-subtitle">批量文件加密工具</div>
+            <div class="brand-subtitle">文件加密与 PDF 工具</div>
           </div>
         </div>
         <div class="privacy-badge">
@@ -58,7 +58,7 @@
               <div class="document back"></div>
               <div class="document front"><span class="mini-lock"></span></div>
             </div>
-            <h2>选择文件夹，批量保护其中的文件</h2>
+            <h2 id="empty-title">选择文件夹，批量保护其中的文件</h2>
             <p id="empty-description">递归扫描子文件夹，所有普通文件都会逐个加密</p>
             <div class="format-chips" aria-label="支持的常见文件类型">
               <span>Word</span><span>PDF</span><span>ZIP / RAR</span><span>全部文件</span>
@@ -87,7 +87,7 @@
             </div>
 
             <fieldset class="mode-switch" id="mode-switch">
-              <legend class="sr-only">选择加密或解密</legend>
+              <legend class="sr-only">选择处理方式</legend>
               <label>
                 <input type="radio" name="mode" value="encrypt" checked />
                 <span>加密文件</span>
@@ -96,42 +96,57 @@
                 <input type="radio" name="mode" value="decrypt" />
                 <span>解密文件</span>
               </label>
+              <label>
+                <input type="radio" name="mode" value="split" />
+                <span>拆分 PDF</span>
+              </label>
             </fieldset>
 
-            <div class="field-group">
-              <label for="password">密码</label>
-              <div class="password-field">
-                <input
-                  id="password"
-                  type="password"
-                  maxlength="256"
-                  placeholder="输入密码"
-                  autocomplete="new-password"
-                />
-                <button
-                  class="icon-button eye-button"
-                  id="show-password"
-                  type="button"
-                  aria-label="显示密码"
-                  aria-pressed="false"
-                >
-                  <span aria-hidden="true"></span>
-                </button>
+            <div id="crypto-settings">
+              <div class="field-group">
+                <label for="password">密码</label>
+                <div class="password-field">
+                  <input
+                    id="password"
+                    type="password"
+                    maxlength="256"
+                    placeholder="输入密码"
+                    autocomplete="new-password"
+                  />
+                  <button
+                    class="icon-button eye-button"
+                    id="show-password"
+                    type="button"
+                    aria-label="显示密码"
+                    aria-pressed="false"
+                  >
+                    <span aria-hidden="true"></span>
+                  </button>
+                </div>
+                <p class="field-help" id="password-help">至少 8 个字符，建议使用长密码短语</p>
               </div>
-              <p class="field-help" id="password-help">至少 8 个字符，建议使用长密码短语</p>
+
+              <div class="field-group" id="confirm-row">
+                <label for="confirm-password">确认密码</label>
+                <div class="password-field">
+                  <input
+                    id="confirm-password"
+                    type="password"
+                    maxlength="256"
+                    placeholder="再次输入密码"
+                    autocomplete="new-password"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div class="field-group" id="confirm-row">
-              <label for="confirm-password">确认密码</label>
-              <div class="password-field">
-                <input
-                  id="confirm-password"
-                  type="password"
-                  maxlength="256"
-                  placeholder="再次输入密码"
-                  autocomplete="new-password"
-                />
-              </div>
+            <div id="split-settings" hidden>
+              <p class="pdf-summary" id="pdf-summary">选择 PDF 后填写拆分范围</p>
+              <div class="split-list" id="split-list"></div>
+              <button class="button secondary add-split" id="add-split" type="button" disabled>
+                ＋ 添加一份 PDF
+              </button>
+              <p class="field-help">页码可重复或跳过；文件名会自动补充 .pdf</p>
             </div>
           </section>
 
@@ -159,8 +174,8 @@
           <div class="safety-note">
             <div class="shield-check" aria-hidden="true">✓</div>
             <div>
-              <strong>文件夹只用于选择范围</strong>
-              <p>递归处理其中的文件，不打包文件夹，不覆盖或删除原文件。</p>
+              <strong id="safety-title">文件夹只用于选择范围</strong>
+              <p id="safety-description">递归处理其中的文件，不打包文件夹，不覆盖或删除原文件。</p>
             </div>
           </div>
         </aside>

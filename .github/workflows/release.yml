@@ -55,6 +55,6 @@ jobs:
           sha256sum dist/* > SHA256SUMS.txt
           gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"
           gh release upload "$GITHUB_REF_NAME" dist/* SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
-          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "FileMate $GITHUB_REF_NAME" --notes "FileMate 首个公开版本，支持在 Windows 和 macOS 上递归批量加密、解密文件。安装包使用免费自签名，首次运行时系统仍可能显示安全提示。"
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "FileMate $GITHUB_REF_NAME" --notes "支持在 Windows 和 macOS 上批量加密、解密文件，以及按页码范围拆分和重命名扫描 PDF。安装包使用免费自签名，首次运行时系统仍可能显示安全提示。"
         env:
           GH_TOKEN: ${{ github.token }}
